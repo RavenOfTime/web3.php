@@ -953,4 +953,44 @@ class Contract
 
         return $eventLogData;
     }
+     public function parseEventLogs(string $object)
+    {
+        $eventLogData = [];
+
+        //indexed and non-indexed event parameters must be treated separately
+        //indexed parameters are stored in the 'topics' array
+        //non-indexed parameters are stored in the 'data' value
+        $eventParameterNames = [];
+        $eventParameterTypes = [];
+        $eventIndexedParameterNames = [];
+        $eventIndexedParameterTypes = [];
+
+        foreach ($this->events[$eventName]['inputs'] as $input) {
+            if ($input['indexed']) {
+                $eventIndexedParameterNames[] = $input['name'];
+                $eventIndexedParameterTypes[] = $input['type'];
+            } else {
+                $eventParameterNames[] = $input['name'];
+                $eventParameterTypes[] = $input['type'];
+            }
+        }
+
+        $numEventIndexedParameterNames = count($eventIndexedParameterNames);
+        $decodedData = array_combine($eventParameterNames, $this->ethabi->decodeParameters($eventParameterTypes, $object->data));
+
+                //decode the indexed parameter data
+                for ($i = 0; $i < $numEventIndexedParameterNames; $i++) {
+                    //topics[0] is the event signature, so we start from $i + 1 for the indexed parameter data
+                    $decodedData[$eventIndexedParameterNames[$i]] = $this->ethabi->decodeParameters([$eventIndexedParameterTypes[$i]], $object->topics[$i + 1])[0];
+                }
+
+                //include block metadata for context, along with event data
+                $eventLogData[] = [
+                    'transactionHash' => $object->transactionHash,
+                    'blockHash' => $object->blockHash,
+                    'blockNumber' => hexdec($object->blockNumber),
+                    'data' => $decodedData
+                ];
+        return $eventLogData;
+    }
 }
