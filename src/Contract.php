@@ -953,7 +953,7 @@ class Contract
 
         return $eventLogData;
     }
-     public function parseEventLogs(string $object)
+     public function parseEventLogs($object, $eventName)
     {
         $eventLogData = [];
 
@@ -978,19 +978,20 @@ class Contract
         $numEventIndexedParameterNames = count($eventIndexedParameterNames);
         $decodedData = array_combine($eventParameterNames, $this->ethabi->decodeParameters($eventParameterTypes, $object->data));
 
-                //decode the indexed parameter data
-                for ($i = 0; $i < $numEventIndexedParameterNames; $i++) {
-                    //topics[0] is the event signature, so we start from $i + 1 for the indexed parameter data
-                    $decodedData[$eventIndexedParameterNames[$i]] = $this->ethabi->decodeParameters([$eventIndexedParameterTypes[$i]], $object->topics[$i + 1])[0];
-                }
+        //decode the indexed parameter data
+        for ($i = 0; $i < $numEventIndexedParameterNames; $i++) {
+            //topics[0] is the event signature, so we start from $i + 1 for the indexed parameter data
+            $decodedData[$eventIndexedParameterNames[$i]] = $this->ethabi->decodeParameters([$eventIndexedParameterTypes[$i]], $object->topics[$i + 1])[0];
+        }
 
-                //include block metadata for context, along with event data
-                $eventLogData[] = [
-                    'transactionHash' => $object->transactionHash,
-                    'blockHash' => $object->blockHash,
-                    'blockNumber' => hexdec($object->blockNumber),
-                    'data' => $decodedData
-                ];
+        //include block metadata for context, along with event data
+        $eventLogData = [
+            'transactionHash' => $object->transactionHash,
+            'blockHash' => $object->blockHash,
+            'blockNumber' => hexdec($object->blockNumber),
+            'data' => $decodedData,
+            'address' => $object->address
+        ];
         return $eventLogData;
     }
 }
